@@ -1,5 +1,4 @@
 from __future__ import division
-from io import BufferedReader
 
 import json
 import os
@@ -14,7 +13,7 @@ from functools import wraps
 try:
     import audioop
 except ImportError:
-    import pyaudioop as audioop
+    from . import pyaudioop as audioop
 
 if sys.version_info >= (3, 0):
     basestring = str
@@ -59,9 +58,6 @@ def _fd_or_path_or_tempfile(fd, mode='w+b', tempfile=True):
 
     if isinstance(fd, basestring):
         fd = open(fd, mode=mode)
-        close_fd = True
-
-    if isinstance(fd, BufferedReader):
         close_fd = True
 
     try:
@@ -280,13 +276,11 @@ def mediainfo_json(filepath, read_ahead_limit=-1):
     output = output.decode("utf-8", 'ignore')
     stderr = stderr.decode("utf-8", 'ignore')
 
-    try:
-        info = json.loads(output)
-    except  json.decoder.JSONDecodeError:
+    info = json.loads(output)
+
+    if not info:
         # If ffprobe didn't give any information, just return it
         # (for example, because the file doesn't exist)
-        return None
-    if not info:
         return info
 
     extra_info = get_extra_info(stderr)
@@ -437,4 +431,3 @@ def ms_to_stereo(audio_segment):
 	channel = audio_segment.split_to_mono()
 	channel = [channel[0].overlay(channel[1]) - 3, channel[0].overlay(channel[1].invert_phase()) - 3]
 	return AudioSegment.from_mono_audiosegments(channel[0], channel[1])
-
